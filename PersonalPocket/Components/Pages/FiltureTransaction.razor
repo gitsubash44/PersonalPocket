@@ -1,0 +1,57 @@
+﻿@page "/filturetransaction"
+@using System.IO
+@using System.Text.Json
+
+
+
+
+<!-- Filters Section -->
+
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">Filter & Sort Transactions</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="filterType" class="form-label">Type</label>
+                    <select id="filterType" class="form-select">
+                        <option selected>All</option>
+                        <option value="credit">Credit</option>
+                        <option value="debit">Debit</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filterPeriod" class="form-label">Period</label>
+                    <select id="filterPeriod" class="form-select">
+                        <option selected>All</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="filterTitle" class="form-label">Title</label>
+                    <input type="text" class="form-control" id="filterTitle" placeholder="Search by title">
+                </div>
+                <div class="col-md-3">
+                    <label for="filterTags" class="form-label">Tags</label>
+                    <input type="text" class="form-control" id="filterTags" placeholder="e.g., Rent">
+                </div>
+                <div class="col-md-6">
+                    <label for="filterDateRange" class="form-label">Date Range</label>
+                    <input type="text" class="form-control" id="filterDateRange" placeholder="e.g., 2024-01-01 to 2024-12-31">
+                </div>
+                <div class="col-md-6">
+                    <label for="sortBy" class="form-label">Sort By</label>
+                    <select id="sortBy" class="form-select">
+                        <option value="date" selected>Date</option>
+                        <option value="amount">Amount</option>
+                        <option value="type">Type</option>
+                        <option value="title">Title</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-secondary">Apply Filters</button>
+            </div>
+        </div>
+    </div>

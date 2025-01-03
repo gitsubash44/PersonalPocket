@@ -1,0 +1,96 @@
+﻿@page "/debtmanagement"
+
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debt Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .pending-debt {
+            background-color: #f8d7da;
+        }
+    </style>
+</head>
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Debt Management</h2>
+
+    <!-- Debt Listing Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Debts Overview</h5>
+            <button class="btn btn-primary h3 border-light" data-bs-toggle="modal" data-bs-target="#debtModal">Add Debt</button>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Source of Debt</th>
+                        <th>Amount</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="pending-debt">
+                        <td>1</td>
+                        <td>Credit Card</td>
+                        <td>$500</td>
+                        <td>2024-12-20</td>
+                        <td><span class="badge bg-danger">Pending</span></td>
+                        <td>
+                            <button class="btn btn-success btn-sm">Clear Debt</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>Personal Loan</td>
+                        <td>$2000</td>
+                        <td>2024-10-15</td>
+                        <td><span class="badge bg-success">Cleared</span></td>
+                        <td>
+                            <button class="btn btn-secondary btn-sm" disabled>Cleared</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal for Add Debt -->
+    <div class="modal fade" id="debtModal" tabindex="-1" aria-labelledby="debtModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="debtModalLabel">Add Debt</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="debtSource" class="form-label">Source of Debt</label>
+                                <input type="text" class="form-control" id="debtSource" placeholder="Enter source">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="debtAmount" class="form-label">Amount</label>
+                                <input type="number" class="form-control" id="debtAmount" placeholder="Enter amount">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="debtDueDate" class="form-label">Due Date</label>
+                                <input type="date" class="form-control" id="debtDueDate">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-primary me-2">Add Debt</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+
