@@ -22,7 +22,6 @@
                         <option value="" disabled selected>Choose...</option>
                         <option value="credit">Credit</option>
                         <option value="debit">Debit</option>
-                        <option value="debt">Debt</option>
                     </InputSelect>
                     <ValidationMessage For="@(() => transaction.Type)" />
                 </div>
@@ -83,7 +82,7 @@
 
         // Ensure directory exists before writing to the file
         var directory = Path.GetDirectoryName(path);
-        if (!Directory.Exists(directory))
+        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
         {
             Directory.CreateDirectory(directory);
         }
@@ -101,24 +100,4 @@
         }
     }
 
-    public class TransactionModel
-    {
-        [Required(ErrorMessage = "Title is required.")]
-        public string Title { get; set; }
-
-        [Required(ErrorMessage = "Type is required.")]
-        public string Type { get; set; }
-
-        [Required(ErrorMessage = "Amount is required.")]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero.")]
-        public decimal Amount { get; set; }
-
-        [Required(ErrorMessage = "Date is required.")]
-        public DateTime Date { get; set; }
-
-        [Required(ErrorMessage = "Tag is required.")]
-        public string Tag { get; set; }
-
-        public string Notes { get; set; }
-    }
 }
