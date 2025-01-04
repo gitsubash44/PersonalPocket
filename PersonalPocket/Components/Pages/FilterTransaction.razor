@@ -1,72 +1,54 @@
-﻿@page "/transaction"
+﻿@page "/filtertransaction"
 @using System.IO
 @using System.Text.Json
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transaction Tracking</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
 
-<div class="container my-5">
-    <h1 class="text-center mb-4">Transaction Tracking</h1>
 
-    <!-- Summary Section -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card text-white bg-success">
-                <div class="card-body">
-                    <h5 class="card-title">Total Cash In</h5>
-                    <p class="card-text" id="totalCashIn">$0</p>
-                </div>
+
+<!-- Filters Section -->
+
+<div class="card mb-4">
+    <div class="card-header bg-secondary text-white">Filter & Sort Transactions</div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label for="filterType" class="form-label">Type</label>
+                <select id="filterType" class="form-select">
+                    <option selected>All</option>
+                    <option value="credit">Credit</option>
+                    <option value="debit">Debit</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filterPeriod" class="form-label">Period</label>
+                <select id="filterPeriod" class="form-select">
+                    <option selected>All</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filterTitle" class="form-label">Title</label>
+                <input type="text" class="form-control" id="filterTitle" placeholder="Search by title">
+            </div>
+            <div class="col-md-3">
+                <label for="filterTags" class="form-label">Tags</label>
+                <input type="text" class="form-control" id="filterTags" placeholder="e.g., Rent">
+            </div>
+            <div class="col-md-6">
+                <label for="startDate" class="form-label">Start Date</label>
+                <input type="date" class="form-control" id="startDate" placeholder="e.g., 2024-01-01">
+            </div>
+            <div class="col-md-6">
+                <label for="endDate" class="form-label">End Date</label>
+                <input type="date" class="form-control" id="endDate" placeholder="e.g., 2024-12-31">
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card text-white bg-danger">
-                <div class="card-body">
-                    <h5 class="card-title">Total Cash Out</h5>
-                    <p class="card-text" id="totalCashOut">$0</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-white bg-success">
-                <div class="card-body">
-                    <h5 class="card-title">Current Balance</h5>
-                    <p class="card-text" id="currentBalance">$0</p>
-                </div>
-            </div>
+        <div class="m-3 d-flex justify-content-end">
+            <button type="submit" class="btn btn-secondary">Apply Filters</button>
         </div>
     </div>
-
-    <!-- Toggle Buttons -->
-    <div class="d-flex justify-content-between mb-4">
-        <NavLink class="btn btn-primary" href="/addtransaction">
-            Add Transaction
-        </NavLink>
-
-        <NavLink class="btn btn-primary" href="/filtertransaction">
-            Filter & Sort Transactions
-        </NavLink>
-    </div>
-
-
-
-    @code {
-        private List<TransactionModel> transactions = new List<TransactionModel>();
-
-        protected override void OnInitialized()
-        {
-            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "transactions.json");
-            if (File.Exists(path))
-            {
-                var json = File.ReadAllText(path);
-                transactions = JsonSerializer.Deserialize<List<TransactionModel>>(json) ?? new List<TransactionModel>();
-            }
-        }
-    }
-
 
     <!-- Transaction List Section -->
     <div class="card">
@@ -116,4 +98,6 @@
             </div>
         </div>
     </div>
+</div>
+
 </div>

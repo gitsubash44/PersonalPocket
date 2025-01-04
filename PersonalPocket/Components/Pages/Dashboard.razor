@@ -1,49 +1,48 @@
 ﻿@page "/dashboard"
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<div class="container mt-4">
-    <h1 class="text-center mb-4">Dashboard</h1>
+@using System.ComponentModel.DataAnnotations
+@using System.Linq
+@using System.IO
+@using System.Text.Json
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Dashboard</h2>
 
     <!-- Summary Section -->
     <div class="row mb-4">
         <div class="col-md-4">
-            <div class="card text-white bg-success">
+            <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Inflows</h5>
-                    <p class="card-text">Rs 10,000</p>
+                    <p class="card-text">@totalInflows.ToString("C")</p>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card text-white bg-danger">
+            <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Outflows</h5>
-                    <p class="card-text">Rs 7,500</p>
+                    <p class="card-text">@totalOutflows.ToString("C")</p>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card text-white bg-warning">
+            <div class="card bg-warning text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Debts</h5>
-                    <p class="card-text">Rs 2,500</p>
+                    <p class="card-text">@totalDebts.ToString("C")</p>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Key Metrics Section -->
-    <div class="row align-items-md-center mb-4">
+    <div class="row mb-4">
         <div class="col-md-3">
             <div class="card">
                 <div class="card-body">
                     <h6 class="card-title">Cleared Debts</h6>
-                    <p class="card-text">Rs 1,000</p>
+                    <p class="card-text">@clearedDebts.ToString("C")</p>
                 </div>
             </div>
         </div>
@@ -51,7 +50,7 @@
             <div class="card">
                 <div class="card-body">
                     <h6 class="card-title">Remaining Debts</h6>
-                    <p class="card-text">Rs 1,500</p>
+                    <p class="card-text">@remainingDebts.ToString("C")</p>
                 </div>
             </div>
         </div>
@@ -64,11 +63,10 @@
                 <div class="card-body">
                     <h6 class="card-title">Top 5 Highest Transactions</h6>
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item">Rs 2,000</li>
-                        <li class="list-group-item">Rs 1,500</li>
-                        <li class="list-group-item">Rs 1,200</li>
-                        <li class="list-group-item">Rs 1,000</li>
-                        <li class="list-group-item">Rs 800</li>
+                        @foreach (var transaction in topHighestTransactions)
+                        {
+                            <li class="list-group-item">@transaction.ToString("C")</li>
+                        }
                     </ul>
                 </div>
             </div>
@@ -78,18 +76,16 @@
                 <div class="card-body">
                     <h6 class="card-title">Top 5 Lowest Transactions</h6>
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item">Rs 50</li>
-                        <li class="list-group-item">Rs 100</li>
-                        <li class="list-group-item">Rs 200</li>
-                        <li class="list-group-item">Rs 250</li>
-                        <li class="list-group-item">Rs 300</li>
+                        @foreach (var transaction in topLowestTransactions)
+                        {
+                            <li class="list-group-item">@transaction.ToString("C")</li>
+                        }
                     </ul>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Pending Debts Section -->
     <!-- Pending Debts Section -->
     <div class="row mb-4">
         <div class="col-12">
@@ -102,14 +98,14 @@
                         <label for="dateRange" class="form-label">Filter by Date Range</label>
                         <div class="row gx-2">
                             <div class="col-md-6">
-                                <input type="date" id="startDate" class="form-control" placeholder="Start Date">
+                                <input type="date" id="startDate" class="form-control" @bind="startDate" />
                             </div>
                             <div class="col-md-6">
-                                <input type="date" id="endDate" class="form-control" placeholder="End Date">
+                                <input type="date" id="endDate" class="form-control" @bind="endDate" />
                             </div>
                         </div>
                         <div class="mt-3 text-end">
-                            <button class="btn btn-primary" type="button">Apply Filter</button>
+                            <button class="btn btn-primary" @onclick="ApplyFilter">Apply Filter</button>
                         </div>
                     </div>
 
@@ -123,18 +119,13 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>Debt 1</td>
-                                    <td class="text-danger">Rs 500</td>
-                                </tr>
-                                <tr>
-                                    <td>Debt 2</td>
-                                    <td class="text-danger">Rs 300</td>
-                                </tr>
-                                <tr>
-                                    <td>Debt 3</td>
-                                    <td class="text-danger">Rs 200</td>
-                                </tr>
+                                @foreach (var debt in filteredDebts)
+                                {
+                                    <tr>
+                                        <td>@debt.Name</td>
+                                        <td class="text-danger">@debt.Amount.ToString("C")</td>
+                                    </tr>
+                                }
                             </tbody>
                         </table>
                     </div>
@@ -144,5 +135,86 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
 
+@code {
+    private List<Transaction> transactions = new List<Transaction>();
+    private List<Debt> debts = new List<Debt>();
+    private decimal totalInflows;
+    private decimal totalOutflows;
+    private decimal totalDebts;
+    private decimal clearedDebts;
+    private decimal remainingDebts;
+    private List<decimal> topHighestTransactions = new List<decimal>();
+    private List<decimal> topLowestTransactions = new List<decimal>();
+    private List<Debt> filteredDebts = new List<Debt>();
+
+    private DateTime startDate = DateTime.MinValue;
+    private DateTime endDate = DateTime.MaxValue;
+
+    protected override void OnInitialized()
+    {
+        LoadData();
+    }
+
+    private void LoadData()
+    {
+        // Simulating data loading. Replace with your actual data retrieval logic.
+        transactions = LoadTransactions();
+        debts = LoadDebts();
+
+        totalInflows = transactions.Where(t => t.Type == "Inflows").Sum(t => t.Amount);
+        totalOutflows = transactions.Where(t => t.Type == "Outflows").Sum(t => t.Amount);
+        totalDebts = debts.Sum(d => d.Amount);
+        clearedDebts = debts.Where(d => d.IsCleared).Sum(d => d.Amount);
+        remainingDebts = totalDebts - clearedDebts;
+
+        topHighestTransactions = transactions.OrderByDescending(t => t.Amount).Take(5).Select(t => t.Amount).ToList();
+        topLowestTransactions = transactions.OrderBy(t => t.Amount).Take(5).Select(t => t.Amount).ToList();
+
+        filteredDebts = debts.Where(d => d.DueDate >= startDate && d.DueDate <= endDate).ToList();
+    }
+
+    private List<Transaction> LoadTransactions()
+    {
+        // Replace this with actual data load logic
+        return new List<Transaction>
+        {
+            new Transaction { Amount = 2000, Type = "Inflows" },
+            new Transaction { Amount = 1500, Type = "Outflows" },
+            new Transaction { Amount = 1200, Type = "Inflows" },
+            new Transaction { Amount = 1000, Type = "Outflows" },
+            new Transaction { Amount = 800, Type = "Inflows" }
+        };
+    }
+
+    private List<Debt> LoadDebts()
+    {
+        // Replace this with actual data load logic
+        return new List<Debt>
+        {
+            new Debt { Name = "Debt 1", Amount = 500, DueDate = DateTime.Now.AddDays(10), IsCleared = false },
+            new Debt { Name = "Debt 2", Amount = 300, DueDate = DateTime.Now.AddDays(5), IsCleared = false },
+            new Debt { Name = "Debt 3", Amount = 200, DueDate = DateTime.Now.AddDays(-5), IsCleared = true }
+        };
+    }
+
+    private void ApplyFilter()
+    {
+        filteredDebts = debts.Where(d => d.DueDate >= startDate && d.DueDate <= endDate).ToList();
+    }
+
+    public class Transaction
+    {
+        public decimal Amount { get; set; }
+        public string Type { get; set; }
+    }
+
+    public class Debt
+    {
+        public string Name { get; set; }
+        public decimal Amount { get; set; }
+        public DateTime DueDate { get; set; }
+        public bool IsCleared { get; set; }
+    }
+}
