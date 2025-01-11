@@ -15,14 +15,13 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <!-- Search Input -->
         <input type="text" class="form-control w-25" placeholder="Search..." @bind="searchQuery" />
-        
+
         <!-- Sort Options Dropdown -->
         <select class="form-select w-25" @bind="sortOption">
             <option value="">Sort By</option>
             <option value="source">Source</option>
-            <option value="amount">Amount</option>
-            <option value="duedate">Due Date</option>
-            <option value="overdue">Over Due</option>
+            <option value="panding">Panding</option>
+            <option value="cleared">Cleared</option>
         </select>
     </div>
 
@@ -53,7 +52,7 @@
                         @foreach (var debt in paginatedDebts)
                         {
                             <!-- Highlight rows based on debt status -->
-                            <tr class="@(debt.IsCleared ? "cleared-debt" : debt.DueDate < DateTime.Now ? "overdue-debt" : "pending-debt")">
+                            <tr class="@(debt.IsCleared ? "cleared-debt" : debt.DueDate < DateTime.Now ? "panding-debt" : "pending-debt")">
                                 <td>@debt.Id</td>
                                 <td>@debt.Source</td>
                                 <td>@debt.Amount.ToString("C")</td>
@@ -66,7 +65,7 @@
                                     }
                                     else if (debt.DueDate < DateTime.Now)
                                     {
-                                        <span class="badge bg-danger">Overdue</span>
+                                        <span class="badge bg-danger">Panding</span>
                                     }
                                     else
                                     {
@@ -184,9 +183,8 @@
         return sortOption switch
         {
             "source" => debt.Source,
-            "amount" => debt.Amount,
-            "duedate" => debt.DueDate,
-            "overdue" => debt.DueDate < DateTime.Now,
+            "panding" => debt.DueDate < DateTime.Now && !debt.IsCleared ? 0 : 1, // Sort panding debts first
+            "cleared" => debt.IsCleared ? 0 : 1, // Sort cleared debts first
             _ => debt.Id
         };
     }
@@ -198,6 +196,9 @@
 
     private void HandleAddDebt()
     {
+        // Assign a unique ID to the new debt
+        newDebt.Id = debts.Any() ? debts.Max(d => d.Id) + 1 : 1;
+
         debts.Add(newDebt);
         SaveDebtsToFile();
         newDebt = new Debt();
@@ -206,14 +207,21 @@
 
     private void ClearDebt(int id)
     {
+        Console.WriteLine($"Attempting to clear debt with ID: {id}");
         var debt = debts.FirstOrDefault(d => d.Id == id);
         if (debt != null)
         {
             debt.IsCleared = true;
             SaveDebtsToFile();
-            StateHasChanged(); // Ensure UI updates after clearing the debt
+            Console.WriteLine($"Debt {id} cleared successfully.");
+            StateHasChanged();
+        }
+        else
+        {
+            Console.WriteLine($"No debt found with ID: {id}");
         }
     }
+
 
     private void SaveDebtsToFile()
     {

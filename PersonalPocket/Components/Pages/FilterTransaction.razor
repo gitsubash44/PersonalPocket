@@ -1,103 +1,157 @@
 ﻿@page "/filtertransaction"
-@using System.IO
 @using System.Text.Json
+@using System.Text.Json
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header text-center bg-primary text-white">
+                    <h4>Filter Transactions</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Tag Filter -->
+                        <div class="col-md-3">
+                            <label for="transactionTags" class="form-label">Tag</label>
+                            <InputSelect id="transactionTags" class="form-select" @bind-Value="FilterTag">
+                                <option value="">Choose...</option>
+                                <option value="Yearly">Yearly</option>
+                                <option value="Monthly">Monthly</option>
+                                <option value="Food">Food</option>
+                                <option value="Drinks">Drinks</option>
+                                <option value="Clothes">Clothes</option>
+                                <option value="Gadgets">Gadgets</option>
+                                <option value="Fuel">Fuel</option>
+                                <option value="Rent">Rent</option>
+                                <option value="Others">Others</option>
+                            </InputSelect>
+                        </div>
 
+                        <!-- Transaction Type Filter -->
+                        <div class="col-md-3">
+                            <label for="transactionType" class="form-label">Type</label>
+                            <select id="transactionType" @bind="FilterTransactionType" class="form-select">
+                                <option value="">Type...</option>
+                                <option value="credit">Credit</option>
+                                <option value="debit">Debit</option>
+                            </select>
+                        </div>
 
+                        <!-- Start Date Filter -->
+                        <div class="col-md-3">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <input type="date" id="startDate" @bind="FilterStartDate" class="form-control" />
+                        </div>
 
+                        <!-- End Date Filter -->
+                        <div class="col-md-3">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <input type="date" id="endDate" @bind="FilterEndDate" class="form-control" />
+                        </div>
 
-<!-- Filters Section -->
-
-<div class="card mb-4">
-    <div class="card-header bg-secondary text-white">Filter & Sort Transactions</div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-3">
-                <label for="filterType" class="form-label">Type</label>
-                <select id="filterType" class="form-select">
-                    <option selected>All</option>
-                    <option value="credit">Credit</option>
-                    <option value="debit">Debit</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label for="filterPeriod" class="form-label">Period</label>
-                <select id="filterPeriod" class="form-select">
-                    <option selected>All</option>
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label for="filterTitle" class="form-label">Title</label>
-                <input type="text" class="form-control" id="filterTitle" placeholder="Search by title">
-            </div>
-            <div class="col-md-3">
-                <label for="filterTags" class="form-label">Tags</label>
-                <input type="text" class="form-control" id="filterTags" placeholder="e.g., Rent">
-            </div>
-            <div class="col-md-6">
-                <label for="startDate" class="form-label">Start Date</label>
-                <input type="date" class="form-control" id="startDate" placeholder="e.g., 2024-01-01">
-            </div>
-            <div class="col-md-6">
-                <label for="endDate" class="form-label">End Date</label>
-                <input type="date" class="form-control" id="endDate" placeholder="e.g., 2024-12-31">
-            </div>
-        </div>
-        <div class="m-3 d-flex justify-content-end">
-            <button type="submit" class="btn btn-secondary">Apply Filters</button>
-        </div>
-    </div>
-
-    <!-- Transaction List Section -->
-    <div class="card">
-        <div class="card-header bg-dark text-white">Transaction List</div>
-
-        <div class="card-body">
-            <div class="table-responsive">
-                @if (transactions == null || transactions.Count == 0)
-                {
-                    <p>No transactions available.</p>
-                }
-                else
-                {
-                    <table class="table table-striped">
-                        <thead class="table-dark">
-                            <tr>
-                                <th scope="col">#</th>
-                                <th scope="col">Title</th>
-                                <th scope="col">Type</th>
-                                <th scope="col">Amount</th>
-                                <th scope="col">Date</th>
-                                <th scope="col">Tags</th>
-                                <th scope="col">Notes</th>
-                                <th scope="col">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var transaction in transactions.Select((value, index) => new { Value = value, Index = index }))
-                            {
-                                <tr class="@(transaction.Value.Type.ToLower() == "debit" ? "table-warning" : "")">
-                                    <td>@transaction.Index </td>
-                                    <td>@transaction.Value.Title</td>
-                                    <td>
-                                        <span class="badge @(transaction.Value.Type.ToLower() == "credit" ? "bg-success" : "bg-danger")">
-                                            @transaction.Value.Type
-                                        </span>
-                                    </td>
-                                    <td>@transaction.Value.Amount.ToString("C")</td>
-                                    <td>@transaction.Value.Date.ToShortDateString()</td>
-                                    <td>@transaction.Value.Tag</td>
-                                    <td>@transaction.Value.Notes</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
+                        <!-- Search Button -->
+                        <div class="col-12 text-center">
+                            <button @onclick="ApplyFilters" class="btn btn-primary w-50">Search</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-</div>
+@if (FilteredTransactions.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Tags</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var transaction in FilteredTransactions.Select((value, index) => new { value, index }))
+            {
+                <tr>
+                    <td>@(transaction.index + 1)</td>
+                    <td>@transaction.value.Title</td>
+                    <td>@transaction.value.Type</td>
+                    <td>@transaction.value.Amount</td>
+                    <td>@transaction.value.Date.ToShortDateString()</td>
+                    <td>@transaction.value.Tag</td>
+                    <td>@transaction.value.Notes</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <div class="alert alert-warning">No transactions found matching your criteria.</div>
+}
+
+@code {
+    private List<TransactionModel> Transactions = new();
+    private List<TransactionModel> FilteredTransactions = new();
+    private string FilterTag = string.Empty;
+    private string FilterTransactionType = string.Empty;
+    private DateTime? FilterStartDate;
+    private DateTime? FilterEndDate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load transactions from JSON file
+        await LoadTransactionsFromFile();
+    }
+
+    private async Task LoadTransactionsFromFile()
+    {
+        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "transactions.json");
+
+        if (File.Exists(path))
+        {
+            var json = await File.ReadAllTextAsync(path);
+            Transactions = JsonSerializer.Deserialize<List<TransactionModel>>(json) ?? new List<TransactionModel>();
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        // Apply filters on the loaded transactions from the JSON file
+        var filtered = Transactions.AsQueryable();
+
+        // Filter by tag
+        if (!string.IsNullOrEmpty(FilterTag))
+        {
+            filtered = filtered.Where(t => t.Tag == FilterTag);
+        }
+
+        // Filter by transaction type
+        if (!string.IsNullOrEmpty(FilterTransactionType))
+        {
+            filtered = filtered.Where(t => t.Type == FilterTransactionType);
+        }
+
+        // Filter by start date
+        if (FilterStartDate.HasValue)
+        {
+            filtered = filtered.Where(t => t.Date >= FilterStartDate.Value);
+        }
+
+        // Filter by end date
+        if (FilterEndDate.HasValue)
+        {
+            filtered = filtered.Where(t => t.Date <= FilterEndDate.Value);
+        }
+
+        // Assign the filtered list to FilteredTransactions
+        FilteredTransactions = filtered.ToList();
+    }
+}

@@ -68,16 +68,22 @@
     private TransactionModel transaction = new TransactionModel();
     private List<TransactionModel> transactions = new List<TransactionModel>();
 
-    public void HandleAddTransaction()
+    private async Task HandleAddTransaction()
     {
+        // Validation example for beginners
+        if (string.IsNullOrWhiteSpace(transaction.Type) || transaction.Amount <= 0)
+        {
+            return; // Exit early if the form is invalid
+        }
+
         transactions.Add(transaction);
-        transaction = new TransactionModel();
-        SaveTransactionsToFile();
+        transaction = new TransactionModel(); // Reset form after adding
+
+        await SaveTransactionsToFile();
     }
 
-    private void SaveTransactionsToFile()
+    private async Task SaveTransactionsToFile()
     {
-        var json = JsonSerializer.Serialize(transactions);
         var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "transactions.json");
 
         // Ensure directory exists before writing to the file
@@ -87,17 +93,17 @@
             Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllText(path, json);
+        var json = JsonSerializer.Serialize(transactions);
+        await File.WriteAllTextAsync(path, json); // Use async file writing
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "transactions.json");
         if (File.Exists(path))
         {
-            var json = File.ReadAllText(path);
+            var json = await File.ReadAllTextAsync(path); // Use async file reading
             transactions = JsonSerializer.Deserialize<List<TransactionModel>>(json) ?? new List<TransactionModel>();
         }
     }
-
 }

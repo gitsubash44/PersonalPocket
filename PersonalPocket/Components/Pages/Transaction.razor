@@ -9,6 +9,28 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
+
+@code {
+    private decimal TotalCashIn { get; set; } = 0;
+    private decimal TotalCashOut { get; set; } = 0;
+    private decimal CurrentBalance { get; set; } = 0;
+
+
+    private void CalculateSummary()
+    {
+        TotalCashIn = transactions
+            .Where(t => t.Type.Equals("credit", StringComparison.OrdinalIgnoreCase))
+            .Sum(t => t.Amount);
+
+        TotalCashOut = transactions
+            .Where(t => t.Type.Equals("debit", StringComparison.OrdinalIgnoreCase))
+            .Sum(t => t.Amount);
+
+        CurrentBalance = TotalCashIn - TotalCashOut;
+    }
+
+}
+
 <div class="container my-5">
     <h1 class="text-center mb-4">Transaction Tracking</h1>
 
@@ -18,7 +40,7 @@
             <div class="card text-white bg-success">
                 <div class="card-body">
                     <h5 class="card-title">Total Cash In</h5>
-                    <p class="card-text" id="totalCashIn">$0</p>
+                    <p class="card-text" id="totalCashIn">@TotalCashIn.ToString("C")</p>
                 </div>
             </div>
         </div>
@@ -26,7 +48,7 @@
             <div class="card text-white bg-danger">
                 <div class="card-body">
                     <h5 class="card-title">Total Cash Out</h5>
-                    <p class="card-text" id="totalCashOut">$0</p>
+                    <p class="card-text" id="totalCashOut">@TotalCashOut.ToString("C")</p>
                 </div>
             </div>
         </div>
@@ -34,7 +56,7 @@
             <div class="card text-white bg-success">
                 <div class="card-body">
                     <h5 class="card-title">Current Balance</h5>
-                    <p class="card-text" id="currentBalance">$0</p>
+                    <p class="card-text" id="currentBalance">@CurrentBalance.ToString("C")</p>
                 </div>
             </div>
         </div>
@@ -63,6 +85,8 @@
             {
                 var json = File.ReadAllText(path);
                 transactions = JsonSerializer.Deserialize<List<TransactionModel>>(json) ?? new List<TransactionModel>();
+
+                CalculateSummary();
             }
         }
     }
@@ -93,7 +117,7 @@
                                 <th scope="col">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                       <tbody>
                             @foreach (var transaction in transactions.Select((value, index) => new { Value = value, Index = index }))
                             {
                                 <tr class="@(transaction.Value.Type.ToLower() == "debit" ? "table-warning" : "")">
@@ -108,6 +132,9 @@
                                     <td>@transaction.Value.Date.ToShortDateString()</td>
                                     <td>@transaction.Value.Tag</td>
                                     <td>@transaction.Value.Notes</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger" @onclick="() => DeleteTransaction(transaction.Index)">Delete</button>
+                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -117,3 +144,23 @@
         </div>
     </div>
 </div>
+
+@code {
+    
+    private void DeleteTransaction(int index)
+    {
+        // Remove the transaction from the list
+        if (index >= 0 && index < transactions.Count)
+        {
+            transactions.RemoveAt(index);
+            SaveTransactions();
+        }
+    }
+
+    private void SaveTransactions()
+    {
+        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "transactions.json");
+        var json = JsonSerializer.Serialize(transactions);
+        File.WriteAllText(path, json);
+    }
+}
