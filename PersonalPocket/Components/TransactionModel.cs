@@ -27,4 +27,5 @@ namespace PersonalPocket.Components
 
         public string Notes { get; set; }
     }
+
 }

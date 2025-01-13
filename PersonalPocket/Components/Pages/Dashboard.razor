@@ -9,7 +9,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Inflows</h5>
-                    <p class="card-text">$0.00</p>
+                    <p class="card-text">@TotalInflows.ToString("C")</p> <!-- Correct binding -->
                 </div>
             </div>
         </div>
@@ -17,7 +17,7 @@
             <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Outflows</h5>
-                    <p class="card-text">$0.00</p>
+                    <p class="card-text">@TotalOutflows.ToString("C")</p> <!-- Correct binding -->
                 </div>
             </div>
         </div>
@@ -25,31 +25,176 @@
             <div class="card bg-warning text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Debts</h5>
-                    <p class="card-text">$0.00</p>
+                    <p class="card-text">@TotalDebts.ToString("C")</p> <!-- Correct binding -->
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Key Metrics Section -->
-    <div class="row mb-4">
+    <div class="row mb-4 justify-content-center">
         <div class="col-md-3">
-            <div class="card">
+            <div class="card bg-success text-white">
                 <div class="card-body">
                     <h6 class="card-title">Cleared Debts</h6>
-                    <p class="card-text">$0.00</p>
+                    <p class="card-text">@ClearedDebts.ToString("C")</p> <!-- Correct binding -->
                 </div>
             </div>
         </div>
         <div class="col-md-3">
-            <div class="card">
+            <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h6 class="card-title">Remaining Debts</h6>
-                    <p class="card-text">$0.00</p>
+                    <p class="card-text">@RemainingDebts.ToString("C")</p> <!-- Correct binding -->
                 </div>
             </div>
         </div>
     </div>
+</div>
+
+@code {
+    private decimal TotalInflows = 0;
+    private decimal TotalOutflows = 0;
+    private decimal TotalDebts = 0;
+    private decimal ClearedDebts = 0;
+    private decimal RemainingDebts = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get paths to local JSON files
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var debtsPath = Path.Combine(appData, "debtmanagement", "debts.json");
+        var transactionsPath = Path.Combine(appData, "transactions.json");
+
+        // Ensure directories and files exist
+        if (File.Exists(transactionsPath))
+        {
+            try
+            {
+                var transactionJson = await File.ReadAllTextAsync(transactionsPath);
+                var transactions = System.Text.Json.JsonSerializer.Deserialize<List<Transaction>>(transactionJson);
+
+                if (transactions == null || !transactions.Any())
+                {
+                    Console.WriteLine("No transactions found in the file.");
+                }
+                else
+                {
+                    Console.WriteLine($"Loaded {transactions.Count} transactions.");
+                    TotalInflows = transactions.Where(t => t.Type.Equals("credit", StringComparison.OrdinalIgnoreCase)).Sum(t => t.Amount);
+
+                    TotalOutflows = transactions.Where(t => t.Type.Equals("debit", StringComparison.OrdinalIgnoreCase)).Sum(t => t.Amount);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading transactions: {ex.Message}");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"File not found: {transactionsPath}");
+        }
+
+        // Process Debts file if it exists
+        if (File.Exists(debtsPath))
+        {
+            try
+            {
+                var debtJson = await File.ReadAllTextAsync(debtsPath);
+                var debts = System.Text.Json.JsonSerializer.Deserialize<List<Debt>>(debtJson);
+
+                if (debts != null)
+                {
+                    TotalDebts = debts.Sum(d => d.Amount);
+                    ClearedDebts = debts.Where(d => d.IsCleared).Sum(d => d.Amount);
+                    RemainingDebts = TotalDebts - ClearedDebts;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading debts: {ex.Message}");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"File not found: {debtsPath}");
+        }
+
+        StateHasChanged();
+    }
+
+    // Data Models for Transaction and Debt
+    public class Transaction
+    {
+        public string Type { get; set; }
+        public decimal Amount { get; set; }
+    }
+
+    public class Debt
+    {
+        public decimal Amount { get; set; }
+        public bool IsCleared { get; set; }
+    }
+}
+
+
+
+
+    <!-- Pending Debts Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">Pending Debts</h6>
+
+                    <!-- Filter Section -->
+                    <div class="mb-3">
+                        <label for="dateRange" class="form-label">Filter by Date Range</label>
+                        <div class="row gx-3">
+                            <div class="col-md-5">
+                                <input type="date" id="startDate" class="form-control" />
+                            </div>
+                            <div class="col-md-5">
+                                <input type="date" id="endDate" class="form-control" />
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-primary">Apply Filter</button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Pending Debts List -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Source</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Sample Debt</td>
+                                    <td class="text-danger">$0.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+<!-- Transactions Section -->
+<div class="container my-5">
+    <h2 class="text-center mb-4">Transactions</h2>
 
     <!-- Top Transactions Section -->
     <div class="row mb-4">
@@ -103,49 +248,163 @@
         </div>
     </div>
 
-    <!-- Pending Debts Section -->
     <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h6 class="card-title">Pending Debts</h6>
+        <div class="col-md-6">
+            <h3>Highest Inflow</h3>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Tag</th>
+                            <th>Amount</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Jan 03, 2023</td>
+                            <td>Example Description</td>
+                            <td>Example Tag</td>
+                            <td>Rs 20,000</td>
+                            <td>Credit</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-                    <!-- Filter Section -->
-                    <div class="mb-3">
-                        <label for="dateRange" class="form-label">Filter by Date Range</label>
-                        <div class="row gx-3">
-                            <div class="col-md-5">
-                                <input type="date" id="startDate" class="form-control" />
-                            </div>
-                            <div class="col-md-5">
-                                <input type="date" id="endDate" class="form-control" />
-                            </div>
-                            <div class="col-md-2">
-                                <button class="btn btn-primary">Apply Filter</button>
-                            </div>
-                        </div>
-                       
-                    </div>
+        <div class="col-md-6">
+            <h3>Lowest Inflow</h3>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Tag</th>
+                            <th>Amount</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Jan 04, 2023</td>
+                            <td>Example Description</td>
+                            <td>Example Tag</td>
+                            <td>Rs 1,000</td>
+                            <td>Credit</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-                    <!-- Pending Debts List -->
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Source</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Sample Debt</td>
-                                    <td class="text-danger">$0.00</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h3>Highest Outflow</h3>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Tag</th>
+                            <th>Amount</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Jan 05, 2023</td>
+                            <td>Example Description</td>
+                            <td>Example Tag</td>
+                            <td>Rs 15,000</td>
+                            <td>Debit</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <h3>Lowest Outflow</h3>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Tag</th>
+                            <th>Amount</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Jan 06, 2023</td>
+                            <td>Example Description</td>
+                            <td>Example Tag</td>
+                            <td>Rs 200</td>
+                            <td>Debit</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h3>Highest Outflow</h3>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Tag</th>
+                                <th>Amount</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Jan 05, 2023</td>
+                                <td>Example Description</td>
+                                <td>Example Tag</td>
+                                <td>Rs 15,000</td>
+                                <td>Debit</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <h3>Lowest Outflow</h3>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Tag</th>
+                                <th>Amount</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Jan 06, 2023</td>
+                                <td>Example Description</td>
+                                <td>Example Tag</td>
+                                <td>Rs 200</td>
+                                <td>Debit</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
