@@ -1,4 +1,6 @@
 ﻿@page "/dashboard"
+@using System.IO
+@using System.Text.Json
 
 <div class="container mt-5">
     <h2 class="text-center mb-4">Dashboard</h2>
@@ -9,7 +11,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Inflows</h5>
-                    <p class="card-text">@TotalInflows.ToString("C")</p> <!-- Correct binding -->
+                    <p class="card-text">@TotalInflows.ToString("C")</p>
                 </div>
             </div>
         </div>
@@ -17,7 +19,7 @@
             <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Outflows</h5>
-                    <p class="card-text">@TotalOutflows.ToString("C")</p> <!-- Correct binding -->
+                    <p class="card-text">@TotalOutflows.ToString("C")</p>
                 </div>
             </div>
         </div>
@@ -25,7 +27,7 @@
             <div class="card bg-warning text-white">
                 <div class="card-body">
                     <h5 class="card-title">Total Debts</h5>
-                    <p class="card-text">@TotalDebts.ToString("C")</p> <!-- Correct binding -->
+                    <p class="card-text">@TotalDebts.ToString("C")</p>
                 </div>
             </div>
         </div>
@@ -37,7 +39,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h6 class="card-title">Cleared Debts</h6>
-                    <p class="card-text">@ClearedDebts.ToString("C")</p> <!-- Correct binding -->
+                    <p class="card-text">@ClearedDebts.ToString("C")</p>
                 </div>
             </div>
         </div>
@@ -45,101 +47,11 @@
             <div class="card bg-danger text-white">
                 <div class="card-body">
                     <h6 class="card-title">Remaining Debts</h6>
-                    <p class="card-text">@RemainingDebts.ToString("C")</p> <!-- Correct binding -->
+                    <p class="card-text">@RemainingDebts.ToString("C")</p>
                 </div>
             </div>
         </div>
     </div>
-</div>
-
-@code {
-    private decimal TotalInflows = 0;
-    private decimal TotalOutflows = 0;
-    private decimal TotalDebts = 0;
-    private decimal ClearedDebts = 0;
-    private decimal RemainingDebts = 0;
-
-    protected override async Task OnInitializedAsync()
-    {
-        // Get paths to local JSON files
-        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var debtsPath = Path.Combine(appData, "debtmanagement", "debts.json");
-        var transactionsPath = Path.Combine(appData, "transactions.json");
-
-        // Ensure directories and files exist
-        if (File.Exists(transactionsPath))
-        {
-            try
-            {
-                var transactionJson = await File.ReadAllTextAsync(transactionsPath);
-                var transactions = System.Text.Json.JsonSerializer.Deserialize<List<Transaction>>(transactionJson);
-
-                if (transactions == null || !transactions.Any())
-                {
-                    Console.WriteLine("No transactions found in the file.");
-                }
-                else
-                {
-                    Console.WriteLine($"Loaded {transactions.Count} transactions.");
-                    TotalInflows = transactions.Where(t => t.Type.Equals("credit", StringComparison.OrdinalIgnoreCase)).Sum(t => t.Amount);
-
-                    TotalOutflows = transactions.Where(t => t.Type.Equals("debit", StringComparison.OrdinalIgnoreCase)).Sum(t => t.Amount);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading transactions: {ex.Message}");
-            }
-        }
-        else
-        {
-            Console.WriteLine($"File not found: {transactionsPath}");
-        }
-
-        // Process Debts file if it exists
-        if (File.Exists(debtsPath))
-        {
-            try
-            {
-                var debtJson = await File.ReadAllTextAsync(debtsPath);
-                var debts = System.Text.Json.JsonSerializer.Deserialize<List<Debt>>(debtJson);
-
-                if (debts != null)
-                {
-                    TotalDebts = debts.Sum(d => d.Amount);
-                    ClearedDebts = debts.Where(d => d.IsCleared).Sum(d => d.Amount);
-                    RemainingDebts = TotalDebts - ClearedDebts;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading debts: {ex.Message}");
-            }
-        }
-        else
-        {
-            Console.WriteLine($"File not found: {debtsPath}");
-        }
-
-        StateHasChanged();
-    }
-
-    // Data Models for Transaction and Debt
-    public class Transaction
-    {
-        public string Type { get; set; }
-        public decimal Amount { get; set; }
-    }
-
-    public class Debt
-    {
-        public decimal Amount { get; set; }
-        public bool IsCleared { get; set; }
-    }
-}
-
-
-
 
     <!-- Pending Debts Section -->
     <div class="row mb-4">
@@ -153,18 +65,18 @@
                         <label for="dateRange" class="form-label">Filter by Date Range</label>
                         <div class="row gx-3">
                             <div class="col-md-5">
-                                <input type="date" id="startDate" class="form-control" />
+                                <input type="date" id="startDate" class="form-control" @bind="FilterStartDate" />
                             </div>
                             <div class="col-md-5">
-                                <input type="date" id="endDate" class="form-control" />
+                                <input type="date" id="endDate" class="form-control" @bind="FilterEndDate" />
                             </div>
                             <div class="col-md-2">
-                                <button class="btn btn-primary">Apply Filter</button>
+                                <button class="btn btn-primary" @onclick="FilterDebts">Apply Filter</button>
                             </div>
                         </div>
-
                     </div>
 
+                    <!-- Pending Debts List -->
                     <!-- Pending Debts List -->
                     <div class="table-responsive">
                         <table class="table table-bordered">
@@ -178,10 +90,26 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>Sample Debt</td>
-                                    <td class="text-danger">$0.00</td>
-                                </tr>
+                                @foreach (var debt in FilteredDebts.Where(d => !d.IsCleared))
+                                {
+                                    <tr>
+                                        <td>@debt.Source</td>
+                                        <td class="text-danger">@debt.Amount.ToString("C")</td>
+                                        <td>@debt.DueDate.ToShortDateString()</td>
+                                        <td>
+                                            <span class="badge bg-danger">Pending</span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-success btn-sm" @onclick="() => ClearDebt(debt.Id)">Clear</button>
+                                        </td>
+                                    </tr>
+                                }
+                                @if (!FilteredDebts.Any(d => !d.IsCleared))
+                                {
+                                    <tr>
+                                        <td colspan="5" class="text-center">No pending debts found.</td>
+                                    </tr>
+                                }
                             </tbody>
                         </table>
                     </div>
@@ -190,13 +118,7 @@
         </div>
     </div>
 
-
-
-<!-- Transactions Section -->
-<div class="container my-5">
-    <h2 class="text-center mb-4">Transactions</h2>
-
-    <!-- Top Transactions Section -->
+    <!-- Transactions Section -->
     <div class="row mb-4">
         <div class="col-md-6">
             <div class="card">
@@ -212,12 +134,15 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>1</td>
-                                <td>Sample Transaction</td>
-                                <td>Credit</td>
-                                <td>$0.00</td>
-                            </tr>
+                            @foreach (var transaction in TopTransactions)
+                            {
+                                <tr>
+                                    <td>@(TopTransactions.IndexOf(transaction) + 1)</td>
+                                    <td>@transaction.Title</td>
+                                    <td>@transaction.Type</td>
+                                    <td>@transaction.Amount.ToString("C")</td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
@@ -236,173 +161,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>Sample Transaction</td>
-                                <td>Debit</td>
-                                <td>$0.00</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <h3>Highest Inflow</h3>
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Date</th>
-                            <th>Description</th>
-                            <th>Tag</th>
-                            <th>Amount</th>
-                            <th>Type</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Jan 03, 2023</td>
-                            <td>Example Description</td>
-                            <td>Example Tag</td>
-                            <td>Rs 20,000</td>
-                            <td>Credit</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="col-md-6">
-            <h3>Lowest Inflow</h3>
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Date</th>
-                            <th>Description</th>
-                            <th>Tag</th>
-                            <th>Amount</th>
-                            <th>Type</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Jan 04, 2023</td>
-                            <td>Example Description</td>
-                            <td>Example Tag</td>
-                            <td>Rs 1,000</td>
-                            <td>Credit</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <h3>Highest Outflow</h3>
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Date</th>
-                            <th>Description</th>
-                            <th>Tag</th>
-                            <th>Amount</th>
-                            <th>Type</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Jan 05, 2023</td>
-                            <td>Example Description</td>
-                            <td>Example Tag</td>
-                            <td>Rs 15,000</td>
-                            <td>Debit</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="col-md-6">
-            <h3>Lowest Outflow</h3>
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Date</th>
-                            <th>Description</th>
-                            <th>Tag</th>
-                            <th>Amount</th>
-                            <th>Type</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Jan 06, 2023</td>
-                            <td>Example Description</td>
-                            <td>Example Tag</td>
-                            <td>Rs 200</td>
-                            <td>Debit</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <h3>Highest Outflow</h3>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Date</th>
-                                <th>Description</th>
-                                <th>Tag</th>
-                                <th>Amount</th>
-                                <th>Type</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Jan 05, 2023</td>
-                                <td>Example Description</td>
-                                <td>Example Tag</td>
-                                <td>Rs 15,000</td>
-                                <td>Debit</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <h3>Lowest Outflow</h3>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Date</th>
-                                <th>Description</th>
-                                <th>Tag</th>
-                                <th>Amount</th>
-                                <th>Type</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Jan 06, 2023</td>
-                                <td>Example Description</td>
-                                <td>Example Tag</td>
-                                <td>Rs 200</td>
-                                <td>Debit</td>
-                            </tr>
+                            @foreach (var transaction in LowestTransactions)
+                            {
+                                <tr>
+                                    <td>@transaction.Title</td>
+                                    <td>@transaction.Type</td>
+                                    <td>@transaction.Amount.ToString("C")</td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 </div>
@@ -411,4 +177,273 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h3>Highest Inflow</h3>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Tag</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (HighestInflow != null)
+                    {
+                        <tr>
+                            <td>@HighestInflow.Date.ToShortDateString()</td>
+                            <td>@HighestInflow.Title</td>
+                            <td>@HighestInflow.Tag</td>
+                            <td>@HighestInflow.Amount.ToString("C")</td>
+                            <td>@HighestInflow.Type</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center">No data available</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <h3>Lowest Inflow</h3>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Tag</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (LowestInflow != null)
+                    {
+                        <tr>
+                            <td>@LowestInflow.Date.ToShortDateString()</td>
+                            <td>@LowestInflow.Title</td>
+                            <td>@LowestInflow.Tag</td>
+                            <td>@LowestInflow.Amount.ToString("C")</td>
+                            <td>@LowestInflow.Type</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center">No data available</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h3>Highest Outflow</h3>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Tag</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (HighestOutflow != null)
+                    {
+                        <tr>
+                            <td>@HighestOutflow.Date.ToShortDateString()</td>
+                            <td>@HighestOutflow.Title</td>
+                            <td>@HighestOutflow.Tag</td>
+                            <td>@HighestOutflow.Amount.ToString("C")</td>
+                            <td>@HighestOutflow.Type</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center">No data available</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <h3>Lowest Outflow</h3>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Tag</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (LowestOutflow != null)
+                    {
+                        <tr>
+                            <td>@LowestOutflow.Date.ToShortDateString()</td>
+                            <td>@LowestOutflow.Title</td>
+                            <td>@LowestOutflow.Tag</td>
+                            <td>@LowestOutflow.Amount.ToString("C")</td>
+                            <td>@LowestOutflow.Type</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center">No data available</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    // Metrics for the dashboard
+    private decimal TotalInflows = 0;
+    private decimal TotalOutflows = 0;
+    private decimal TotalDebts = 0;
+    private decimal ClearedDebts = 0;
+    private decimal RemainingDebts = 0;
+
+    // Data lists
+    private List<Transaction> Transactions = new();
+    private List<Debt> Debts = new();
+    private List<Debt> FilteredDebts = new();
+    private List<Transaction> TopTransactions = new();
+    private List<Transaction> LowestTransactions = new();
+
+    // Filtering and sorting
+    private DateTime? FilterStartDate;
+    private DateTime? FilterEndDate;
+
+    // Highest and lowest inflows/outflows
+    private Transaction HighestInflow;
+    private Transaction LowestInflow;
+    private Transaction HighestOutflow;
+    private Transaction LowestOutflow;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        CalculateMetrics();
+        FilterDebts();
+        CalculateTopTransactions();
+        CalculateInflowsAndOutflows(); // Added this line
+    }
+
+    private async Task LoadData()
+    {
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var transactionsPath = Path.Combine(appData, "transactions.json");
+        var debtsPath = Path.Combine(appData, "debtmanagement", "debts.json");
+
+        if (File.Exists(transactionsPath))
+        {
+            var transactionJson = await File.ReadAllTextAsync(transactionsPath);
+            Transactions = JsonSerializer.Deserialize<List<Transaction>>(transactionJson) ?? new List<Transaction>();
+        }
+
+        if (File.Exists(debtsPath))
+        {
+            var debtJson = await File.ReadAllTextAsync(debtsPath);
+            Debts = JsonSerializer.Deserialize<List<Debt>>(debtJson) ?? new List<Debt>();
+        }
+    }
+
+    private void CalculateMetrics()
+    {
+        TotalInflows = Transactions.Where(t => t.Type == "credit").Sum(t => t.Amount);
+        TotalOutflows = Transactions.Where(t => t.Type == "debit").Sum(t => t.Amount);
+        TotalDebts = Debts.Sum(d => d.Amount);
+        ClearedDebts = Debts.Where(d => d.IsCleared).Sum(d => d.Amount);
+        RemainingDebts = TotalDebts - ClearedDebts;
+    }
+
+    private void FilterDebts()
+    {
+        FilteredDebts = Debts
+            .Where(d => (!FilterStartDate.HasValue || d.DueDate >= FilterStartDate) &&
+                        (!FilterEndDate.HasValue || d.DueDate <= FilterEndDate) &&
+                        !d.IsCleared) // Only include pending debts
+            .ToList();
+    }
+
+    private void CalculateTopTransactions()
+    {
+        TopTransactions = Transactions
+            .OrderByDescending(t => t.Amount)
+            .Take(5)
+            .ToList();
+
+        LowestTransactions = Transactions
+            .OrderBy(t => t.Amount)
+            .Take(5)
+            .ToList();
+    }
+
+    private void CalculateInflowsAndOutflows()
+    {
+        var creditTransactions = Transactions.Where(t => t.Type == "credit").ToList();
+        var debitTransactions = Transactions.Where(t => t.Type == "debit").ToList();
+
+        HighestInflow = creditTransactions.OrderByDescending(t => t.Amount).FirstOrDefault();
+        LowestInflow = creditTransactions.OrderBy(t => t.Amount).FirstOrDefault();
+        HighestOutflow = debitTransactions.OrderByDescending(t => t.Amount).FirstOrDefault();
+        LowestOutflow = debitTransactions.OrderBy(t => t.Amount).FirstOrDefault();
+    }
+
+    private void ClearDebt(int id)
+    {
+        var debt = Debts.FirstOrDefault(d => d.Id == id);
+        if (debt != null)
+        {
+            debt.IsCleared = true;
+            CalculateMetrics();
+            FilterDebts();
+        }
+    }
+
+    // Data models
+    public class Transaction
+    {
+        public string Title { get; set; }
+        public string Type { get; set; }
+        public decimal Amount { get; set; }
+        public DateTime Date { get; set; }
+        public string Tag { get; set; }
+    }
+
+    public class Debt
+    {
+        public int Id { get; set; }
+        public string Source { get; set; }
+        public decimal Amount { get; set; }
+        public DateTime DueDate { get; set; }
+        public bool IsCleared { get; set; }
+    }
+}

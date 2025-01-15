@@ -1,5 +1,11 @@
-﻿public class Debt
+﻿using System.Transactions;
+
+public class Debt
 {
+    public List<Debt> Debts { get; set; } = new();
+    public List<Transaction> Transactions { get; set; } = new();
+
+    public event Action OnChange;
     public int Id { get; set; }
     public string SourceOfDebt { get; set; }
     public decimal Amount { get; set; }
