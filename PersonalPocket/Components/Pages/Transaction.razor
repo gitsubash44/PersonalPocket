@@ -1,6 +1,7 @@
 ﻿@page "/transaction"
 @using System.IO
 @using System.Text.Json
+@using System.Linq
 
 <head>
     <meta charset="UTF-8">
@@ -8,28 +9,6 @@
     <title>Transaction Tracking</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-
-
-@code {
-    private decimal TotalCashIn { get; set; } = 0;
-    private decimal TotalCashOut { get; set; } = 0;
-    private decimal CurrentBalance { get; set; } = 0;
-
-
-    private void CalculateSummary()
-    {
-        TotalCashIn = transactions
-            .Where(t => t.Type.Equals("credit", StringComparison.OrdinalIgnoreCase))
-            .Sum(t => t.Amount);
-
-        TotalCashOut = transactions
-            .Where(t => t.Type.Equals("debit", StringComparison.OrdinalIgnoreCase))
-            .Sum(t => t.Amount);
-
-        CurrentBalance = TotalCashIn - TotalCashOut;
-    }
-
-}
 
 <div class="container my-5">
     <h1 class="text-center mb-4">Transaction Tracking</h1>
@@ -73,25 +52,6 @@
         </NavLink>
     </div>
 
-
-
-    @code {
-        private List<TransactionModel> transactions = new List<TransactionModel>();
-
-        protected override void OnInitialized()
-        {
-            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "transactions.json");
-            if (File.Exists(path))
-            {
-                var json = File.ReadAllText(path);
-                transactions = JsonSerializer.Deserialize<List<TransactionModel>>(json) ?? new List<TransactionModel>();
-
-                CalculateSummary();
-            }
-        }
-    }
-
-
     <!-- Transaction List Section -->
     <div class="card">
         <div class="card-header bg-dark text-white">Transaction List</div>
@@ -117,11 +77,11 @@
                                 <th scope="col">Actions</th>
                             </tr>
                         </thead>
-                       <tbody>
+                        <tbody>
                             @foreach (var transaction in transactions.Select((value, index) => new { Value = value, Index = index }))
                             {
                                 <tr class="@(transaction.Value.Type.ToLower() == "debit" ? "table-warning" : "")">
-                                    <td>@transaction.Index </td>
+                                    <td>@transaction.Index</td>
                                     <td>@transaction.Value.Title</td>
                                     <td>
                                         <span class="badge @(transaction.Value.Type.ToLower() == "credit" ? "bg-success" : "bg-danger")">
@@ -146,7 +106,51 @@
 </div>
 
 @code {
-    
+    private decimal TotalCashIn { get; set; } = 0;
+    private decimal TotalCashOut { get; set; } = 0;
+    private decimal CurrentBalance { get; set; } = 0;
+    private List<TransactionModel> transactions = new List<TransactionModel>();
+    private List<Debt> debts = new List<Debt>();
+
+    protected override void OnInitialized()
+    {
+        var transactionPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "transactions.json");
+        var debtPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "debtmanagement", "debts.json");
+
+        // Load Transactions
+        if (File.Exists(transactionPath))
+        {
+            var json = File.ReadAllText(transactionPath);
+            transactions = JsonSerializer.Deserialize<List<TransactionModel>>(json) ?? new List<TransactionModel>();
+        }
+
+        // Load Debts
+        if (File.Exists(debtPath))
+        {
+            var json = File.ReadAllText(debtPath);
+            debts = JsonSerializer.Deserialize<List<Debt>>(json) ?? new List<Debt>();
+        }
+
+        CalculateSummary();
+    }
+
+    private void CalculateSummary()
+    {
+        TotalCashIn = transactions
+            .Where(t => t.Type.Equals("credit", StringComparison.OrdinalIgnoreCase))
+            .Sum(t => t.Amount);
+
+        TotalCashOut = transactions
+            .Where(t => t.Type.Equals("debit", StringComparison.OrdinalIgnoreCase))
+            .Sum(t => t.Amount);
+
+        // Calculate pending debts (where IsCleared is false)
+        var pendingDebts = debts.Where(d => !d.IsCleared).Sum(d => d.Amount);
+
+        // Update the current balance
+        CurrentBalance = TotalCashIn - TotalCashOut + pendingDebts;
+    }
+
     private void DeleteTransaction(int index)
     {
         // Remove the transaction from the list

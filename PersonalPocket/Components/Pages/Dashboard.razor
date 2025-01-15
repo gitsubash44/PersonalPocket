@@ -2,6 +2,7 @@
 @using System.IO
 @using System.Text.Json
 
+<!-- Dashboard Layout -->
 <div class="container mt-5">
     <h2 class="text-center mb-4">Dashboard</h2>
 
@@ -86,7 +87,6 @@
                                     <th>Amount</th>
                                     <th>Date</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -98,9 +98,6 @@
                                         <td>@debt.DueDate.ToShortDateString()</td>
                                         <td>
                                             <span class="badge bg-danger">Pending</span>
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-success btn-sm" @onclick="() => ClearDebt(debt.Id)">Clear</button>
                                         </td>
                                     </tr>
                                 }
@@ -321,7 +318,6 @@
     </div>
 </div>
 
-
 @code {
     // Metrics for the dashboard
     private decimal TotalInflows = 0;
@@ -347,13 +343,17 @@
     private Transaction HighestOutflow;
     private Transaction LowestOutflow;
 
+    // Data for adding debts
+    private Debt NewDebt = new Debt();
+    private int DebtToClearId;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
         CalculateMetrics();
         FilterDebts();
         CalculateTopTransactions();
-        CalculateInflowsAndOutflows(); // Added this line
+        CalculateInflowsAndOutflows();
     }
 
     private async Task LoadData()
@@ -373,6 +373,16 @@
             var debtJson = await File.ReadAllTextAsync(debtsPath);
             Debts = JsonSerializer.Deserialize<List<Debt>>(debtJson) ?? new List<Debt>();
         }
+    }
+
+    private async Task SaveData()
+    {
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var debtsPath = Path.Combine(appData, "debtmanagement", "debts.json");
+
+        Directory.CreateDirectory(Path.GetDirectoryName(debtsPath)!);
+        var debtJson = JsonSerializer.Serialize(Debts);
+        await File.WriteAllTextAsync(debtsPath, debtJson);
     }
 
     private void CalculateMetrics()
@@ -417,14 +427,30 @@
         LowestOutflow = debitTransactions.OrderBy(t => t.Amount).FirstOrDefault();
     }
 
-    private void ClearDebt(int id)
+    private async Task AddDebt()
     {
-        var debt = Debts.FirstOrDefault(d => d.Id == id);
+        Debts.Add(new Debt
+            {
+                Id = Debts.Any() ? Debts.Max(d => d.Id) + 1 : 1,
+                Source = NewDebt.Source,
+                Amount = NewDebt.Amount,
+                DueDate = NewDebt.DueDate,
+                IsCleared = false
+            });
+
+        NewDebt = new Debt(); // Reset form
+        await SaveData();
+        CalculateMetrics();
+    }
+
+    private async Task ClearDebt()
+    {
+        var debt = Debts.FirstOrDefault(d => d.Id == DebtToClearId && !d.IsCleared);
         if (debt != null)
         {
             debt.IsCleared = true;
+            await SaveData();
             CalculateMetrics();
-            FilterDebts();
         }
     }
 

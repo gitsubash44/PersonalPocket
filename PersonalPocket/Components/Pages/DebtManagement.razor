@@ -3,20 +3,14 @@
 @using System.ComponentModel.DataAnnotations
 @using System.Linq
 @using System.IO
-@using System.Text.Json <!-- Imports necessary namespaces for data handling, validation, and serialization -->
-
+@using System.Text.Json
 
 <div class="container mt-5">
-    <!-- Main Container -->
-
     <h2 class="text-center mb-4">Debt Management</h2>
 
     <!-- Filtering Section -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <!-- Search Input -->
         <input type="text" class="form-control w-25" placeholder="Search..." @bind="searchQuery" />
-
-        <!-- Sort Options Dropdown -->
         <select class="form-select w-25" @bind="sortOption">
             <option value="">Sort By</option>
             <option value="source">Source</option>
@@ -28,16 +22,13 @@
     <!-- Debt Listing Section -->
     <div class="card mb-4">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <!-- Add Debt Modal Trigger -->
             <h5 class="mb-0">Debts Overview</h5>
             <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#debtModal">Add Debt</button>
         </div>
         <div class="card-body">
             @if (filteredDebts.Any())
             {
-                <!-- Display debts in a table -->
                 <table class="table table-bordered table-hover">
-                    <!-- Table Headers -->
                     <thead class="table-dark">
                         <tr>
                             <th>#</th>
@@ -51,14 +42,12 @@
                     <tbody>
                         @foreach (var debt in paginatedDebts)
                         {
-                            <!-- Highlight rows based on debt status -->
                             <tr class="@(debt.IsCleared ? "cleared-debt" : debt.DueDate < DateTime.Now ? "panding-debt" : "pending-debt")">
                                 <td>@debt.Id</td>
                                 <td>@debt.Source</td>
                                 <td>@debt.Amount.ToString("C")</td>
                                 <td>@debt.DueDate.ToShortDateString()</td>
                                 <td>
-                                    <!-- Status Badges -->
                                     @if (debt.IsCleared)
                                     {
                                         <span class="badge bg-success">Cleared</span>
@@ -73,7 +62,6 @@
                                     }
                                 </td>
                                 <td>
-                                    <!-- Action Buttons -->
                                     @if (!debt.IsCleared)
                                     {
                                         <button class="btn btn-success btn-sm" @onclick="() => ClearDebt(debt.Id)">Clear</button>
@@ -82,6 +70,7 @@
                                     {
                                         <button class="btn btn-secondary btn-sm" disabled>Cleared</button>
                                     }
+                                    <button class="btn btn-danger btn-sm ms-2" @onclick="() => DeleteDebt(debt.Id)">Delete</button>
                                 </td>
                             </tr>
                         }
@@ -96,7 +85,6 @@
             }
             else
             {
-                <!-- Message when no debts are found -->
                 <p class="text-center">No debts found. Add one to get started.</p>
             }
         </div>
@@ -107,38 +95,32 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <!-- Modal Title -->
                     <h5 class="modal-title" id="debtModalLabel">Add Debt</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Form for Adding Debt -->
                     <EditForm Model="newDebt" OnValidSubmit="HandleAddDebt">
                         <DataAnnotationsValidator />
                         <ValidationSummary />
 
-                        <!-- Debt Source Field -->
                         <div class="mb-3">
                             <label for="debtSource" class="form-label">Source of Debt</label>
                             <InputText id="debtSource" class="form-control" @bind-Value="newDebt.Source" />
                             <ValidationMessage For="@(() => newDebt.Source)" />
                         </div>
 
-                        <!-- Debt Amount Field -->
                         <div class="mb-3">
                             <label for="debtAmount" class="form-label">Amount</label>
                             <InputNumber id="debtAmount" class="form-control" @bind-Value="newDebt.Amount" />
                             <ValidationMessage For="@(() => newDebt.Amount)" />
                         </div>
 
-                        <!-- Debt Due Date Field -->
                         <div class="mb-3">
                             <label for="debtDueDate" class="form-label">Due Date</label>
                             <InputDate id="debtDueDate" class="form-control" @bind-Value="newDebt.DueDate" />
                             <ValidationMessage For="@(() => newDebt.DueDate)" />
                         </div>
 
-                        <!-- Submit Button -->
                         <div class="d-flex justify-content-end">
                             <button type="submit" class="btn btn-primary">Add Debt</button>
                         </div>
@@ -151,7 +133,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
 
-
 @code {
     private List<Debt> debts = new();
     private List<Debt> filteredDebts
@@ -159,9 +140,9 @@
         get
         {
             return debts
-        .Where(d => string.IsNullOrWhiteSpace(searchQuery) || d.Source.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
-        .OrderBy(d => GetSortKey(d)) // Explicitly define sorting logic
-        .ToList();
+                .Where(d => string.IsNullOrWhiteSpace(searchQuery) || d.Source.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(d => GetSortKey(d))
+                .ToList();
         }
     }
 
@@ -175,16 +156,16 @@
 
     private string searchQuery = string.Empty;
     private string sortOption = string.Empty;
+    private decimal CurrentBalance = 0;
 
 
-    // This method returns the sorting key based on the selected sort option
     private object GetSortKey(Debt debt)
     {
         return sortOption switch
         {
             "source" => debt.Source,
-            "panding" => debt.DueDate < DateTime.Now && !debt.IsCleared ? 0 : 1, // Sort panding debts first
-            "cleared" => debt.IsCleared ? 0 : 1, // Sort cleared debts first
+            "panding" => debt.DueDate < DateTime.Now && !debt.IsCleared ? 0 : 1,
+            "cleared" => debt.IsCleared ? 0 : 1,
             _ => debt.Id
         };
     }
@@ -192,36 +173,60 @@
     protected override void OnInitialized()
     {
         debts = LoadDebtsFromFile();
+        CurrentBalance = debts.Sum(d => d.Amount); // Set initial balance based on existing debts
     }
 
     private void HandleAddDebt()
     {
-        // Assign a unique ID to the new debt
+        // Assign a new ID to the debt
         newDebt.Id = debts.Any() ? debts.Max(d => d.Id) + 1 : 1;
-
         debts.Add(newDebt);
+
+        // Save debts to file
         SaveDebtsToFile();
+
+        // Update the current balance by adding the debt amount
+        AdjustCurrentBalanceForDebt(newDebt);
+
+        // Reset the form
         newDebt = new Debt();
-        StateHasChanged(); // Ensure UI updates after debt is added
+        StateHasChanged();
+    }
+
+    private void AdjustCurrentBalanceForDebt(Debt debt)
+    {
+        // Update the current balance based on the new debt
+        CurrentBalance += debt.Amount; // Add debt amount to the current balance
+        SaveCurrentBalance(); // Save the updated balance
+    }
+
+    private void SaveCurrentBalance()
+    {
+        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "debtmanagement", "current_balance.json");
+        File.WriteAllText(path, CurrentBalance.ToString());
     }
 
     private void ClearDebt(int id)
     {
-        Console.WriteLine($"Attempting to clear debt with ID: {id}");
         var debt = debts.FirstOrDefault(d => d.Id == id);
         if (debt != null)
         {
             debt.IsCleared = true;
             SaveDebtsToFile();
-            Console.WriteLine($"Debt {id} cleared successfully.");
             StateHasChanged();
-        }
-        else
-        {
-            Console.WriteLine($"No debt found with ID: {id}");
         }
     }
 
+    private void DeleteDebt(int id)
+    {
+        var debt = debts.FirstOrDefault(d => d.Id == id);
+        if (debt != null)
+        {
+            debts.Remove(debt);
+            SaveDebtsToFile();
+            StateHasChanged();
+        }
+    }
 
     private void SaveDebtsToFile()
     {
@@ -252,12 +257,4 @@
     private void PreviousPage() { if (CanGoBack) currentPage--; }
     private void NextPage() { if (CanGoNext) currentPage++; }
 
-    public class Debt
-    {
-        public int Id { get; set; }
-        [Required] public string Source { get; set; }
-        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero.")] public decimal Amount { get; set; }
-        [Required] public DateTime DueDate { get; set; }
-        public bool IsCleared { get; set; }
-    }
 }
