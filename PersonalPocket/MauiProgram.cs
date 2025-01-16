@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using PersonalPocket.Components;
 
 namespace PersonalPocket
 {
@@ -19,7 +20,9 @@ namespace PersonalPocket
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
-    		builder.Logging.AddDebug();
+            builder.Services.AddScoped<AppState>();
+            builder.Logging.AddDebug();
+
 #endif
 
             return builder.Build();

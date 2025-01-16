@@ -1,54 +1,47 @@
 ﻿@page "/"
-@inject NavigationManager Navigation
 @using System.ComponentModel.DataAnnotations
-@using System.IO
-@using System.Text.Json
+@inject NavigationManager Navigation
+@inject AppState AppState
+@using System.ComponentModel.DataAnnotations
 
-<head>
-    <title>User Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <h2 class="text-center mb-4">Welcome to Personal Pocket</h2>
-            <h3 class="text-center mb-4">Login</h3>
-            <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
-                <DataAnnotationsValidator />
-                <ValidationSummary />
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <h2 class="text-center mb-4">Welcome to Personal Pocket</h2>
+                <h3 class="text-center mb-4">Login</h3>
+                <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
 
-                <div class="mb-3">
-                    <label for="username" class="form-label">Username</label>
-                    <InputText id="username" class="form-control" @bind-Value="loginModel.Username" />
-                    <ValidationMessage For="@(() => loginModel.Username)" />
-                </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <InputText type="password" id="password" class="form-control" @bind-Value="loginModel.Password" />
-                    <ValidationMessage For="@(() => loginModel.Password)" />
-                </div>
-                <div class="mb-3">
-                    <label for="currency" class="form-label">Select Currency</label>
-                    <InputSelect id="currency" class="form-select" @bind-Value="loginModel.Currency">
-                        <option value="">Select your currency</option>
-                        <option value="usd">USD - US Dollar</option>
-                    </InputSelect>
-                    <ValidationMessage For="@(() => loginModel.Currency)" />
-                </div>
-                <button type="submit" class="btn btn-primary w-100">Login</button>
-            </EditForm>
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <InputText id="username" class="form-control" @bind-Value="loginModel.Username" />
+                        <ValidationMessage For="@(() => loginModel.Username)" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <InputText type="password" id="password" class="form-control" @bind-Value="loginModel.Password" />
+                        <ValidationMessage For="@(() => loginModel.Password)" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="currency" class="form-label">Select Currency</label>
+                        <InputSelect id="currency" class="form-select" @bind-Value="loginModel.Currency">
+                            <option value="">Select your currency</option>
+                            <option value="usd">USD - US Dollar</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => loginModel.Currency)" />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                </EditForm>
 
-            @if (!string.IsNullOrEmpty(loginMessage))
-            {
-                <p class="mt-3 text-center text-danger">@loginMessage</p>
-            }
+                @if (!string.IsNullOrEmpty(loginMessage))
+                {
+                    <p class="mt-3 text-center text-danger">@loginMessage</p>
+                }
+            </div>
         </div>
     </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
 
 @code {
     private LoginModel loginModel = new LoginModel();
@@ -61,13 +54,20 @@
         const string adminPassword = "dhami";
 
         if (loginModel.Username.Equals(adminUsername, StringComparison.OrdinalIgnoreCase) &&
-            loginModel.Password == adminPassword)
+            loginModel.Password == adminPassword &&
+            !string.IsNullOrEmpty(loginModel.Currency))
         {
-            Navigation.NavigateTo("/dashboard");
+            // Set AppState.IsAuthenticated to true after successful login
+            AppState.IsAuthenticated = true;
+
+            // Optional: Log to verify that it's updating
+            Console.WriteLine($"Login Successful: {AppState.IsAuthenticated}");
+
+            Navigation.NavigateTo("/dashboard"); // Navigate to dashboard
         }
         else
         {
-            loginMessage = "Invalid username or password.";
+            loginMessage = "Invalid username, password, or currency.";
         }
     }
 

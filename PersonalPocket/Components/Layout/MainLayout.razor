@@ -1,17 +1,34 @@
-﻿@inherits LayoutComponentBase
+﻿@inject AppState AppState
+@inject NavigationManager Navigation
+
+@inherits LayoutComponentBase
+
+<PageTitle>PersonalPocket</PageTitle>
 
 <div class="page">
     <div class="sidebar">
-        <NavMenu />
+        @if (AppState.IsAuthenticated)
+        {
+            <NavMenu />
+        }
+        else
+        {
+            <h4 style="color:crimson; padding:4px; margin:4px; margin-top:50%">You must be logged in to see the menu.</h4>
+        }
     </div>
 
     <main>
-        @* <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div> *@
-
         <article class="content px-4">
             @Body
         </article>
     </main>
 </div>
+
+@code {
+    // You might want to check the authentication status on the layout page
+    // If necessary, you can add logging or debugging here to check when the state changes.
+    protected override void OnInitialized()
+    {
+        Console.WriteLine($"IsAuthenticated: {AppState.IsAuthenticated}");
+    }
+}
