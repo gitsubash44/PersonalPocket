@@ -134,7 +134,10 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
 
 @code {
+    // List to store all debts
     private List<Debt> debts = new();
+
+    // Filter debts based on search query and sorting option
     private List<Debt> filteredDebts
     {
         get
@@ -146,88 +149,92 @@
         }
     }
 
+    // Paginate the filtered debts
     private List<Debt> paginatedDebts => filteredDebts.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
-    private Debt newDebt = new Debt();
+
+    private Debt newDebt = new Debt(); 
     private int currentPage = 1;
-    private const int pageSize = 5;
+    private const int pageSize = 6;
 
     private bool CanGoBack => currentPage > 1;
+
+    // Check if the user can go to the next page
     private bool CanGoNext => currentPage < (filteredDebts.Count / pageSize) + (filteredDebts.Count % pageSize == 0 ? 0 : 1);
 
-    private string searchQuery = string.Empty;
-    private string sortOption = string.Empty;
-    private decimal CurrentBalance = 0;
+    private string searchQuery = string.Empty; 
+    private string sortOption = string.Empty; 
+    private decimal CurrentBalance = 0; 
 
-
+    // Get the sorting key based on selected option
     private object GetSortKey(Debt debt)
     {
         return sortOption switch
         {
-            "source" => debt.Source,
-            "panding" => debt.DueDate < DateTime.Now && !debt.IsCleared ? 0 : 1,
+            "source" => debt.Source, 
+            "panding" => debt.DueDate < DateTime.Now && !debt.IsCleared ? 0 : 1, 
             "cleared" => debt.IsCleared ? 0 : 1,
             _ => debt.Id
         };
     }
 
+    // Load debts and calculate current balance on initialization
     protected override void OnInitialized()
     {
         debts = LoadDebtsFromFile();
-        CurrentBalance = debts.Sum(d => d.Amount); // Set initial balance based on existing debts
+        CurrentBalance = debts.Sum(d => d.Amount); // Calculate initial balance
     }
 
+    // Handle adding a new debt
     private void HandleAddDebt()
     {
-        // Assign a new ID to the debt
-        newDebt.Id = debts.Any() ? debts.Max(d => d.Id) + 1 : 1;
-        debts.Add(newDebt);
-
-        // Save debts to file
-        SaveDebtsToFile();
-
-        // Update the current balance by adding the debt amount
+        newDebt.Id = debts.Any() ? debts.Max(d => d.Id) + 1 : 1; 
+        debts.Add(newDebt); 
+        SaveDebtsToFile(); 
         AdjustCurrentBalanceForDebt(newDebt);
-
-        // Reset the form
-        newDebt = new Debt();
-        StateHasChanged();
+        newDebt = new Debt(); 
+        StateHasChanged(); 
     }
 
+    // Update the current balance after adding a debt
     private void AdjustCurrentBalanceForDebt(Debt debt)
     {
-        // Update the current balance based on the new debt
-        CurrentBalance += debt.Amount; // Add debt amount to the current balance
-        SaveCurrentBalance(); // Save the updated balance
+        CurrentBalance += debt.Amount; // Increase balance
+        SaveCurrentBalance(); // Save balance to file
     }
 
+    // Save the updated balance to file
     private void SaveCurrentBalance()
     {
         var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "debtmanagement", "current_balance.json");
         File.WriteAllText(path, CurrentBalance.ToString());
     }
 
+    // Mark a debt as cleared
     private void ClearDebt(int id)
     {
         var debt = debts.FirstOrDefault(d => d.Id == id);
         if (debt != null)
         {
+
             debt.IsCleared = true;
-            SaveDebtsToFile();
+            SaveDebtsToFile(); 
             StateHasChanged();
         }
     }
 
+    // Delete a debt from the list
     private void DeleteDebt(int id)
     {
         var debt = debts.FirstOrDefault(d => d.Id == id);
         if (debt != null)
         {
-            debts.Remove(debt);
-            SaveDebtsToFile();
-            StateHasChanged();
+            debts.Remove(debt); 
+            SaveDebtsToFile(); 
+            StateHasChanged(); 
         }
     }
 
+    // Save the debts list to a file
     private void SaveDebtsToFile()
     {
         var json = JsonSerializer.Serialize(debts);
@@ -235,6 +242,7 @@
         File.WriteAllText(path, json);
     }
 
+    // Load debts from a file
     private List<Debt> LoadDebtsFromFile()
     {
         var path = GetFilePath();
@@ -246,15 +254,15 @@
         return new List<Debt>();
     }
 
+    // Get the file path for storing debts
     private string GetFilePath()
     {
         var folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var path = Path.Combine(folder, "debtmanagement", "debts.json");
-        Directory.CreateDirectory(Path.GetDirectoryName(path));
+        Directory.CreateDirectory(Path.GetDirectoryName(path)); // Ensure directory exists
         return path;
     }
 
     private void PreviousPage() { if (CanGoBack) currentPage--; }
     private void NextPage() { if (CanGoNext) currentPage++; }
-
 }

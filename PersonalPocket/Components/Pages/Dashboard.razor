@@ -320,156 +320,166 @@
 
 @code {
     // Metrics for the dashboard
-    private decimal TotalInflows = 0;
-    private decimal TotalOutflows = 0;
-    private decimal TotalDebts = 0;
-    private decimal ClearedDebts = 0;
+    private decimal TotalInflows = 0; 
+    private decimal TotalOutflows = 0; 
+    private decimal TotalDebts = 0; 
+    private decimal ClearedDebts = 0; 
     private decimal RemainingDebts = 0;
 
     // Data lists
-    private List<Transaction> Transactions = new();
-    private List<Debt> Debts = new();
-    private List<Debt> FilteredDebts = new();
-    private List<Transaction> TopTransactions = new();
+    private List<Transaction> Transactions = new(); 
+    private List<Debt> Debts = new(); 
+    private List<Debt> FilteredDebts = new(); 
+    private List<Transaction> TopTransactions = new(); 
     private List<Transaction> LowestTransactions = new();
 
     // Filtering and sorting
-    private DateTime? FilterStartDate;
-    private DateTime? FilterEndDate;
+    private DateTime? FilterStartDate; 
+    private DateTime? FilterEndDate; 
 
     // Highest and lowest inflows/outflows
     private Transaction HighestInflow;
-    private Transaction LowestInflow;
-    private Transaction HighestOutflow;
-    private Transaction LowestOutflow;
+    private Transaction LowestInflow; 
+    private Transaction HighestOutflow; 
+    private Transaction LowestOutflow; 
 
     // Data for adding debts
     private Debt NewDebt = new Debt();
-    private int DebtToClearId;
+    private int DebtToClearId; 
 
+    // Runs when the component initializes
     protected override async Task OnInitializedAsync()
     {
-        await LoadData();
+        await LoadData(); 
         CalculateMetrics();
-        FilterDebts();
-        CalculateTopTransactions();
+        FilterDebts(); 
+        CalculateTopTransactions(); 
         CalculateInflowsAndOutflows();
     }
 
+    // Loads transactions and debts from local JSON files
     private async Task LoadData()
     {
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var transactionsPath = Path.Combine(appData, "transactions.json");
         var debtsPath = Path.Combine(appData, "debtmanagement", "debts.json");
 
-        if (File.Exists(transactionsPath))
+        if (File.Exists(transactionsPath)) 
         {
-            var transactionJson = await File.ReadAllTextAsync(transactionsPath);
-            Transactions = JsonSerializer.Deserialize<List<Transaction>>(transactionJson) ?? new List<Transaction>();
+            var transactionJson = await File.ReadAllTextAsync(transactionsPath); // Read JSON file
+            Transactions = JsonSerializer.Deserialize<List<Transaction>>(transactionJson) ?? new List<Transaction>(); // Deserialize or create empty list
         }
 
-        if (File.Exists(debtsPath))
+        if (File.Exists(debtsPath)) // Check if debts file exists
         {
-            var debtJson = await File.ReadAllTextAsync(debtsPath);
-            Debts = JsonSerializer.Deserialize<List<Debt>>(debtJson) ?? new List<Debt>();
+            var debtJson = await File.ReadAllTextAsync(debtsPath); 
+            Debts = JsonSerializer.Deserialize<List<Debt>>(debtJson) ?? new List<Debt>(); 
         }
     }
 
+    // Saves debts to the local JSON file
     private async Task SaveData()
     {
-        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var debtsPath = Path.Combine(appData, "debtmanagement", "debts.json");
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData); 
+        var debtsPath = Path.Combine(appData, "debtmanagement", "debts.json"); 
 
-        Directory.CreateDirectory(Path.GetDirectoryName(debtsPath)!);
-        var debtJson = JsonSerializer.Serialize(Debts);
+        Directory.CreateDirectory(Path.GetDirectoryName(debtsPath)!); 
+        var debtJson = JsonSerializer.Serialize(Debts); 
         await File.WriteAllTextAsync(debtsPath, debtJson);
     }
 
+    // Calculates financial metrics for the dashboard
     private void CalculateMetrics()
     {
-        TotalInflows = Transactions.Where(t => t.Type == "credit").Sum(t => t.Amount);
-        TotalOutflows = Transactions.Where(t => t.Type == "debit").Sum(t => t.Amount);
+        TotalInflows = Transactions.Where(t => t.Type == "credit").Sum(t => t.Amount); 
+        TotalOutflows = Transactions.Where(t => t.Type == "debit").Sum(t => t.Amount); 
         TotalDebts = Debts.Sum(d => d.Amount);
-        ClearedDebts = Debts.Where(d => d.IsCleared).Sum(d => d.Amount);
-        RemainingDebts = TotalDebts - ClearedDebts;
+        ClearedDebts = Debts.Where(d => d.IsCleared).Sum(d => d.Amount); 
+        RemainingDebts = TotalDebts - ClearedDebts; 
     }
 
+    // Filters debts based on date range and pending status
     private void FilterDebts()
     {
         FilteredDebts = Debts
-            .Where(d => (!FilterStartDate.HasValue || d.DueDate >= FilterStartDate) &&
-                        (!FilterEndDate.HasValue || d.DueDate <= FilterEndDate) &&
-                        !d.IsCleared) // Only include pending debts
+            .Where(d => (!FilterStartDate.HasValue || d.DueDate >= FilterStartDate) && 
+                        (!FilterEndDate.HasValue || d.DueDate <= FilterEndDate) && 
+                        !d.IsCleared) 
             .ToList();
     }
 
+    // Calculates the top 5 highest and lowest transactions
     private void CalculateTopTransactions()
     {
         TopTransactions = Transactions
-            .OrderByDescending(t => t.Amount)
-            .Take(5)
+            .OrderByDescending(t => t.Amount) // Sort by highest amount
+            .Take(5) 
             .ToList();
 
         LowestTransactions = Transactions
             .OrderBy(t => t.Amount)
-            .Take(5)
+            .Take(5) // Take bottom 5
             .ToList();
     }
 
+    // Determines highest and lowest inflows/outflows
     private void CalculateInflowsAndOutflows()
     {
-        var creditTransactions = Transactions.Where(t => t.Type == "credit").ToList();
-        var debitTransactions = Transactions.Where(t => t.Type == "debit").ToList();
+        var creditTransactions = Transactions.Where(t => t.Type == "credit").ToList(); 
+        var debitTransactions = Transactions.Where(t => t.Type == "debit").ToList(); 
 
         HighestInflow = creditTransactions.OrderByDescending(t => t.Amount).FirstOrDefault();
-        LowestInflow = creditTransactions.OrderBy(t => t.Amount).FirstOrDefault();
-        HighestOutflow = debitTransactions.OrderByDescending(t => t.Amount).FirstOrDefault();
+        LowestInflow = creditTransactions.OrderBy(t => t.Amount).FirstOrDefault(); 
+        HighestOutflow = debitTransactions.OrderByDescending(t => t.Amount).FirstOrDefault(); 
         LowestOutflow = debitTransactions.OrderBy(t => t.Amount).FirstOrDefault();
     }
 
+    // Adds a new debt to the list and saves it
     private async Task AddDebt()
     {
         Debts.Add(new Debt
             {
-                Id = Debts.Any() ? Debts.Max(d => d.Id) + 1 : 1,
-                Source = NewDebt.Source,
-                Amount = NewDebt.Amount,
-                DueDate = NewDebt.DueDate,
-                IsCleared = false
+                Id = Debts.Any() ? Debts.Max(d => d.Id) + 1 : 1, // Assign new ID
+                Source = NewDebt.Source, 
+                Amount = NewDebt.Amount, 
+                DueDate = NewDebt.DueDate, 
+                IsCleared = false 
             });
 
-        NewDebt = new Debt(); // Reset form
-        await SaveData();
-        CalculateMetrics();
+        NewDebt = new Debt();
+        await SaveData(); 
+        CalculateMetrics(); // Recalculate financial metrics
     }
 
+    // Marks a debt as cleared and updates the data
     private async Task ClearDebt()
     {
-        var debt = Debts.FirstOrDefault(d => d.Id == DebtToClearId && !d.IsCleared);
+        var debt = Debts.FirstOrDefault(d => d.Id == DebtToClearId && !d.IsCleared); // Find the debt by ID
         if (debt != null)
         {
-            debt.IsCleared = true;
-            await SaveData();
-            CalculateMetrics();
+           
+            debt.IsCleared = true; 
+            await SaveData(); 
+            CalculateMetrics(); 
         }
     }
 
     // Data models
     public class Transaction
     {
-        public string Title { get; set; }
-        public string Type { get; set; }
-        public decimal Amount { get; set; }
-        public DateTime Date { get; set; }
-        public string Tag { get; set; }
+        public string Title { get; set; } 
+        public string Type { get; set; } 
+        public decimal Amount { get; set; } 
+        public DateTime Date { get; set; } 
+        public string Tag { get; set; } 
     }
 
     public class Debt
     {
-        public int Id { get; set; }
-        public string Source { get; set; }
-        public decimal Amount { get; set; }
-        public DateTime DueDate { get; set; }
-        public bool IsCleared { get; set; }
+        public int Id { get; set; } 
+        public string Source { get; set; } 
+        public decimal Amount { get; set; } 
+        public DateTime DueDate { get; set; } 
+        public bool IsCleared { get; set; } 
     }
 }

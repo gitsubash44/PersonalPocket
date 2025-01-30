@@ -19,7 +19,7 @@ namespace PersonalPocket.Components
         public async Task<List<TransactionModel>> GetTransactionsAsync()
         {
             // Assuming you are calling an API endpoint to fetch transactions
-            var response = await _httpClient.GetFromJsonAsync<List<TransactionModel>>("api/transactions");
+            var response = await _httpClient.GetFromJsonAsync<List<TransactionModel>>("transactions");
 
             // Return the list of transactions
             return response ?? new List<TransactionModel>();
